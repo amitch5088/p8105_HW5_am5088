@@ -9,6 +9,7 @@ load my necessary libraries
 knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(rvest)
+library(tibble)
 
 knitr::opts_chunk$set(
     fig.width = 6,
@@ -37,15 +38,64 @@ Suppose you put 𝑛people in a room, and want to know the probability that at l
 
 
 ```{r write birthday function}
-summary(cars)
+shared_birthdays = function(n) {
+  
+  random_birthdays = sample(1:365, size = n, replace = TRUE)
+  return(any(duplicated(random_birthdays)))
+}
 ```
 
-## Problem 1 Plots
+Now I'm going to test this function:
+```{r test function}
 
-You can also embed plots, for example:
+shared_birthdays(40)
 
-```{r pressure, echo=FALSE}
-plot(pressure)
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+```{r test function 2}
+
+shared_birthdays(12)
+
+```
+
+Okay, after testing this function, a couple of times it appears that it is working okay. That is, it is able to produce either TRUE or FALSE based on the sample size of n people and if there are any duplicated birthdays in the mix. When I test the function with 40, I get TRUE, and with 12 people I get FALSE. 
+
+**Next, run this function 10000 times for each group size between 2 and 50. For each group size, compute the probability that at least two people in the group will share a birthday by averaging across the 10000 simulation runs. Make a plot showing the probability as a function of group size, and comment on your results.**
+
+loop function
+```{r run the function, echo=TRUE}
+
+results_df = tibble(
+  group_size = integer(),
+  prob_shared_birthdays = numeric()
+)
+set.seed
+for (i in 2:50) {
+   shared_birthdays_loop = replicate(10000, shared_birthdays(i))
+   results_df = results_df %>%
+    add_row(
+      group_size = i,
+      prob_shared_birthdays = mean(shared_birthdays_loop)
+    )
+}
+
+```
+
+check out my table
+```{r check out my table}
+print(results_df)
+```
+
+Plot my results table
+```{r plot results table}
+ggplot(results_df, aes(x = group_size, y = prob_shared_birthdays)) +
+geom_line() +
+labs(
+  title = "Probability of Shared Birthday as a Function of Group Size",
+  x = "Group Size",
+  y = "Probability of Shared Birthday"
+  )
+```
+
+This plot confirms what I learned when I tested the function earlier on a smaller sample size like 12 which had a FALSE result (indicating a lower probablity of duplication) vs a larger sample size like 40 which had a TRUE result (indicating a higher probability of duplication) which is what the plot shows. As the group size increases, the probability of people having a shared birthday increases which is why live in a world with a huge sample size (if we could sample the whole world) and a lot of duplicated birthdays across the 365 days we count in Western society. On the other hand in my group of close friends which is less than 10, there are no duplicated birthdays because that probability is lower in a smaller sample. 
+
