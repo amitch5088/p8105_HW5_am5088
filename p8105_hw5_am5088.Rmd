@@ -191,26 +191,26 @@ Describe the raw data. Create a city_state variable (e.g. “Baltimore, MD”) a
 library(tidyverse)
 library(broom)
 
-wpost_homicide_data = read_csv("https://raw.githubusercontent.com/washingtonpost/data-homicides/master/homicide-data.csv")
+wpost_homicide_df = read_csv("https://raw.githubusercontent.com/washingtonpost/data-homicides/master/homicide-data.csv")
 ```
 
 take a look at the data to describe it
 ```{r glimpse at data}
-glimpse(wpost_homicide_data)
+glimpse(wpost_homicide_df)
 ```
 The raw data has 52,179 rows and 12 variables including victim first and last name, race, age, sex, and then location variables such as city, state, exact location (lat, lon) and disposition which appears to be how the case was handled. There doesn't seem to be a lot of missing data. 
 
 merge variables city and state into one variable
 ```{r merge city and state}
-wpost_homicide_data = wpost_homicide_data %>%
+wpost_homicide_df = wpost_homicide_df %>%
 mutate(city_state = str_c(city, ", ", state))
 ```
 summarize within cities to obtain the total number of homicides and the number of unsolved homicides (those for which the disposition is “Closed without arrest” or “Open/No arrest”).
 ```{r summarize data}
 
-city_data_summary = wpost_homicide_data %>%
+city_summary_df = wpost_homicide_df %>%
   mutate(
-  unsolved = disposition %in% c("Closed without arrest", "Open/No arrest")
+    unsolved = disposition %in% c("Closed without arrest", "Open/No arrest")
   ) %>%
   group_by(city_state) %>%
   summarize(
@@ -220,15 +220,54 @@ city_data_summary = wpost_homicide_data %>%
   ungroup()
 ```
 For the city of Baltimore, MD, use the prop.test function to estimate the proportion of homicides that are unsolved; save the output of prop.test as an R object, apply the broom::tidy to this object and pull the estimated proportion and confidence intervals from the resulting tidy dataframe.
-```{r}
-baltimore_data = city_summary %>%
-filter(city_state == "Baltimore, MD")
+
+```{r baltimore prop test}
+baltimore_df = city_summary_df %>%
+  filter(city_state == "Baltimore, MD")
 
 baltimore_test = prop.test(
-x = baltimore_data$unsolved_homicides,
-n = baltimore_data$total_homicides
+  x = baltimore_df$unsolved_homicides,
+  n = baltimore_df$total_homicides
 )
-baltimore_results = broom::tidy(baltimore_test) %>%
-select(estimate, conf.low, conf.high)
+
+baltimore_results_df = broom::tidy(baltimore_test) %>%
+  select(estimate, conf.low, conf.high)
+```
+Now run prop.test for each of the cities in your dataset, and extract both the proportion of unsolved homicides and the confidence interval for each. Do this within a “tidy” pipeline, making use of purrr::map, purrr::map2, list columns and unnest as necessary to create a tidy dataframe with estimated proportions and CIs for each city.
+```{r all cities prop test}
+
+city_test_df = city_summary_df %>%
+  mutate(
+  prop_test = map2(
+      unsolved_homicides,
+      total_homicides,
+      ~ broom::tidy(prop.test(x = .x, n = .y))
+    )
+  ) %>%
+  unnest(prop_test) %>%
+  select(city_state, estimate, conf.low, conf.high)
+
 ```
 
+Create a plot that shows the estimates and CIs for each city – check out geom_errorbar for a way to add error bars based on the upper and lower limits. Organize cities according to the proportion of unsolved homicides.
+
+```{r plotting estimates and CIs per city}
+
+city_test_df = city_test_df %>%
+  arrange(desc(estimate)) %>%
+  mutate(city_state = fct_reorder(city_state, estimate))
+
+ggplot(city_test_df, aes(x = city_state, y = estimate)) +
+  geom_point() +
+  geom_errorbar(aes(ymin = conf.low, ymax = conf.high), width = 0.2) +
+  coord_flip() +
+  labs(
+    title = "Proportion of Unsolved Homicides by City",
+    x = "City",
+    y = "Proportion of Unsolved Homicides"
+  ) +
+  theme_minimal()
+
+```
+
+From my plot, it appears that the city with the highest proportion of unsolved murders is Chicago, IL with New Orleans second, and Baltimore third whereas cities like Tulsa AL, Richmond VA, and Charlotte NC have the lowest proportion of unsolved murders. There are most likely a lot of factors at play including structural inequities and city sprawl. 
