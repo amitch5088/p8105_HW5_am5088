@@ -141,7 +141,7 @@ repeat_mu_df = map_dfr(repeat_mu_values, ~ sim_t_test(mu = .x))
 
 plot showing proportion of times null was rejected (power)
 ```{r plot null rejection frequency}
-summary_df = repeat_mu_df %>%
+mu_hat_df = repeat_mu_df %>%
 group_by(true_mu) %>%
   summarize(
     power = mean(p.value < 0.05),
@@ -149,7 +149,7 @@ group_by(true_mu) %>%
     avg_mu_hat_rejected = mean(estimate[p.value < 0.05])
   )
 
-ggplot(summary_df, aes(x = true_mu, y = power)) +
+ggplot(mu_hat_df, aes(x = true_mu, y = power)) +
   geom_line() +
   labs(
   title = "Power of the T-Test by true μ",
@@ -158,7 +158,12 @@ ggplot(summary_df, aes(x = true_mu, y = power)) +
   ) +
   theme_minimal()
 
-ggplot(summary_df, aes(x = true_mu)) +
+```
+It appears that as the power (proportion of rejections of the null hypothesis) of this test increases, so does the true value of μ. 
+
+Plot 2:
+```{r plot 2 }
+ggplot(mu_hat_df, aes(x = true_mu)) +
   geom_line(aes(y = avg_mu_hat, color = "All Samples")) +
   geom_line(aes(y = avg_mu_hat_rejected, color = "Rejected Null")) +
   labs(
@@ -170,7 +175,60 @@ ggplot(summary_df, aes(x = true_mu)) +
     name = "Condition"
   ) +
   theme_minimal()
-
 ```
 
+Is the sample average of 𝜇̂ across tests for which the null is rejected approximately equal to the true value of 𝜇? Why or why not?
+
+No, it doesn't appear from the graph that the sample average μ(hat) across tests for which the null is rejected is approximately equal to the true value of μ. Instead, it appears that the sample average of μ (hat) across the power (null rejected) is a bit larger than the true value of μ. 
+
+
+## Problem 3
+The Washington Post has gathered data on homicides in 50 large U.S. cities and made the data available through a GitHub repository here. You can read their accompanying article here.
+
+Describe the raw data. Create a city_state variable (e.g. “Baltimore, MD”) and then summarize within cities to obtain the total number of homicides and the number of unsolved homicides (those for which the disposition is “Closed without arrest” or “Open/No arrest”).
+
+```{r read in my data}
+library(tidyverse)
+library(broom)
+
+wpost_homicide_data = read_csv("https://raw.githubusercontent.com/washingtonpost/data-homicides/master/homicide-data.csv")
+```
+
+take a look at the data to describe it
+```{r glimpse at data}
+glimpse(wpost_homicide_data)
+```
+The raw data has 52,179 rows and 12 variables including victim first and last name, race, age, sex, and then location variables such as city, state, exact location (lat, lon) and disposition which appears to be how the case was handled. There doesn't seem to be a lot of missing data. 
+
+merge variables city and state into one variable
+```{r merge city and state}
+wpost_homicide_data = wpost_homicide_data %>%
+mutate(city_state = str_c(city, ", ", state))
+```
+summarize within cities to obtain the total number of homicides and the number of unsolved homicides (those for which the disposition is “Closed without arrest” or “Open/No arrest”).
+```{r summarize data}
+
+city_data_summary = wpost_homicide_data %>%
+  mutate(
+  unsolved = disposition %in% c("Closed without arrest", "Open/No arrest")
+  ) %>%
+  group_by(city_state) %>%
+  summarize(
+    total_homicides = n(),
+    unsolved_homicides = sum(unsolved)
+  ) %>%
+  ungroup()
+```
+For the city of Baltimore, MD, use the prop.test function to estimate the proportion of homicides that are unsolved; save the output of prop.test as an R object, apply the broom::tidy to this object and pull the estimated proportion and confidence intervals from the resulting tidy dataframe.
+```{r}
+baltimore_data = city_summary %>%
+filter(city_state == "Baltimore, MD")
+
+baltimore_test = prop.test(
+x = baltimore_data$unsolved_homicides,
+n = baltimore_data$total_homicides
+)
+baltimore_results = broom::tidy(baltimore_test) %>%
+select(estimate, conf.low, conf.high)
+```
 
