@@ -8,18 +8,35 @@ load my necessary libraries
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
+library(rvest)
+
+knitr::opts_chunk$set(
+    fig.width = 6,
+    fig.asp = .6,
+    out.width = "90%"
+)
+
+theme_set(theme_minimal() + theme(legend.position = "bottom"))
+
+options(
+    ggplot2.continuous.colour = "viridis",
+    ggplot2.continuous.fil = "viridis"
+)
+
+scale_colour_discrete = scale_color_viridis_d
+scale_fill_discrete = scale_fill_viridis_d
 ```
 
 ## Problem 1
 
-I've gone ahead and loaded my necessary libraries for this probelm (tidyverse), and will now start to develop a function to address the following question:
+I've gone ahead and loaded my necessary libraries and set up plotting for this problem (tidyverse), and will now start to develop a function to address the following question:
 
 Suppose you put 𝑛people in a room, and want to know the probability that at least two people share a birthday. For simplicity, we’ll assume there are no leap years (i.e. there are only 365 days) and that birthdays are uniformly distributed over the year (which is actually not the case).
 
 **Write a function that, for a fixed group size, randomly draws “birthdays” for each person; checks whether there are duplicate birthdays in the group; and returns TRUE or FALSE based on the result.**
 
 
-```{r cars}
+```{r write birthday function}
 summary(cars)
 ```
 
