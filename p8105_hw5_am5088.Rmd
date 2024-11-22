@@ -271,3 +271,5 @@ ggplot(city_test_df, aes(x = city_state, y = estimate)) +
 ```
 
 From my plot, it appears that the city with the highest proportion of unsolved murders is Chicago, IL with New Orleans second, and Baltimore third whereas cities like Tulsa AL, Richmond VA, and Charlotte NC have the lowest proportion of unsolved murders. There are most likely a lot of factors at play including structural inequities and city sprawl. 
+
+hello 
